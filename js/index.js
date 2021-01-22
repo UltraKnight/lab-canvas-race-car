@@ -60,13 +60,13 @@ let request;
 
 const game = {
   startGame: function(car, road) {
-    if(game.start) {
+      window.cancelAnimationFrame(request);
       game.clear();
       game.reset();
       road.draw();
       car.draw();
-    }
-  },
+      request = requestAnimationFrame(gameLoop);
+    },
   clear() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
   },
@@ -103,7 +103,6 @@ const game = {
   level: 1,
   maxLevel: 8,
   levelUpCount : 0,
-  start: true,
   reset(level = 2, boost = 0) {
     obstacles = [];
     game.frames = 0;
@@ -193,7 +192,6 @@ const gameLoop = () => {
   if(game.endGame(car, obstacles)) {
     window.cancelAnimationFrame(request);
     game.gameOver();
-    game.start = true;
     return;
   }
   
@@ -212,9 +210,5 @@ window.onload = () => {
 
   document.getElementById('start-button').onclick = () => {
     game.startGame(car, road);
-    if(game.start) {
-      request = requestAnimationFrame(gameLoop);
-      game.start = false;
-    }
   };
 };
