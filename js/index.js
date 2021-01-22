@@ -7,6 +7,7 @@ class Component {
     this.height = height;
     this.xVelocity = 0;
     this.yVelocity = 0;
+    this.boost = 0;
   }
 
   draw(source = this.source, x = this.x, y = this.y, width = this.width, height = this.height) {
@@ -72,15 +73,25 @@ const game = {
   endGame(player, obstacles) {
     const end = obstacles.some(obstacle => player.collisionCheck(obstacle));
     if(end) {
+      if(game.points > game.hiPoints) {
+        game.hiPoints = game.points;
+      }
       return true;
     }
   },
   points: 0,
+  hiPoints: 0,
   score(road) {
     const points = game.points;
     ctx.font = 'bold 20px serif';
     ctx.fillStyle = 'black';
     ctx.fillText(`Score: ${points}`, 50, road.bottom() - 30);
+  },
+  highScore(road) {
+    const points = game.hiPoints;
+    ctx.font = 'bold 20px serif';
+    ctx.fillStyle = 'black';
+    ctx.fillText(`Best Score: ${points}`, road.right() - 200, road.bottom() - 30);
   },
   gameOver() {
     ctx.font = 'bold 20px serif';
@@ -89,17 +100,18 @@ const game = {
     ctx.fillText(`Score: ${game.points}`, 50, road.bottom() - 20);
   },
   frames: 0,
-  level: 2,
+  level: 1,
   maxLevel: 8,
   levelUpCount : 0,
   start: true,
-  reset() {
+  reset(level = 2, boost = 0) {
     obstacles = [];
     game.frames = 0;
     game.points = 0;
-    game.level = 2;
+    game.level = level;
     game.levelUpCount = 0;
     car = new Component('./images/car.png', canvas.width / 2 - 25, canvas.height - 150, 50, 100);
+    car.boost = boost;
   }
 };
 
@@ -115,21 +127,27 @@ function updateObstacles() {
   }
 
   game.frames++;
+  
+  if(game.frames % 5 === 0) {
+    roadY *= -1;
+  }
 
   if(game.frames % 120 === 0) {
     game.frames = 0;
-
     let obstacle = new Obstacle();
     game.points += 1 * (game.level - 1);
 
     game.levelUpCount++;
     if(game.levelUpCount === 4) {
+      game.frames += 20;
       game.levelUpCount = 0;
       if(game.level < game.maxLevel) {
         game.level++;
+      } else {
+        game.frames += 50;
       }
       if(game.level === Math.floor(game.maxLevel / 2)) {
-        car.xVelocity += 4;
+        car.boost += 4;
       }
     }
     obstacle.create();
@@ -153,20 +171,20 @@ const controller = {
     }
   }
 };
-
+let roadY = 10;
 const gameLoop = () => {
   //game.clear();
 
-  if(controller.left) {
+  if(controller.left) {        
     if(car.x > 40) {
-      car.xVelocity -= 5;
+      car.xVelocity -= 5 + car.boost;
       car.newPos();
       car.xVelocity = 0;
     }
   }
   if(controller.right) {
     if(car.x < road.width - 90) {
-      car.xVelocity += 5;
+      car.xVelocity += 5 + car.boost;
       car.newPos();
       car.xVelocity = 0;
     }
@@ -178,11 +196,12 @@ const gameLoop = () => {
     game.start = true;
     return;
   }
-
-  road.draw();
+  
+  road.draw(this.source, this.x, roadY);
   car.draw();
   updateObstacles();
   game.score(road);
+  game.highScore(road);
 
   request = requestAnimationFrame(gameLoop);
 };
